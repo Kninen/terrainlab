@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Terrain Lab · Auto tile masking</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header><a class="brand" href="./"><span>▦</span> TERRAIN LAB</a><span class="badge">PIXEL TOOLS / 01</span></header>
+<main>
+<section class="intro"><div class="eyebrow">CONNECTED BY DESIGN</div><h1>A little texture.<br>A whole new world.</h1><p>Paint your terrain. Let the edges take care of themselves.</p></section>
+<div class="workspace">
+<aside class="panel"><div class="panel-title">Terrain settings <span>01</span></div>
+<label>Tile size <select id="tileSize"><option value="8">8 × 8 px</option><option value="16">16 × 16 px</option><option value="24">24 × 24 px</option><option value="32" selected>32 × 32 px</option><option value="48">48 × 48 px</option><option value="64">64 × 64 px</option><option value="128">128 × 128 px</option></select></label>
+<label>Base terrain <input id="base" type="color" value="#baa83a"></label>
+<label class="check"><input id="transparentBase" type="checkbox"> Transparent base</label>
+<label>Overlay terrain <input id="overlay" type="color" value="#546b35"></label>
+<label class="check"><input id="transparentOverlay" type="checkbox"> Transparent overlay (cutout)</label>
+<p class="hint">Transparent base keeps only the overlay. Transparent overlay cuts its shape out of the base.</p>
+<label class="check"><input id="noTexture" type="checkbox"> No texture (flat colors)</label>
+<div class="uploads"><label class="upload">↑ Base texture<input id="baseFile" type="file" accept="image/*"></label><label class="upload">↑ Overlay texture<input id="overlayFile" type="file" accept="image/*"></label></div>
+<p class="hint">Optional images scale to the selected tile size.</p>
+<label>Edge depth <output id="depthValue">7 px</output><input id="depth" type="range" min="2" max="12" value="7"></label>
+<label>Roundness <output id="roundValue">50%</output><input id="round" type="range" min="0" max="100" value="50"></label>
+<p class="hint">Square corners to rounded corners. Set roughness to 0 for clean edges.</p>
+<label>Edge style <select id="edgeStyle"><option value="organic">Organic</option><option value="smooth">Smooth</option><option value="stepped">Stepped</option><option value="jagged">Jagged</option></select></label>
+<p class="hint">Roughness controls edge detail. Smooth ignores roughness; roundness controls corners for every style.</p>
+<label>Roughness <output id="roughValue">2 px</output><input id="rough" type="range" min="0" max="4" value="2"></label>
+<fieldset class="side-effects"><legend>Side effects</legend>
+<p class="hint">Add shadow or grass inside exposed overlay edges. Masks and transparent cutouts stay unchanged.</p>
+<label>Top <select id="sideTop"><option value="none">None</option><option value="shadow">Shadow</option><option value="grass">Grass</option></select></label>
+<label>Right <select id="sideRight"><option value="none">None</option><option value="shadow">Shadow</option><option value="grass">Grass</option></select></label>
+<label>Bottom <select id="sideBottom"><option value="none">None</option><option value="shadow">Shadow</option><option value="grass">Grass</option></select></label>
+<label>Left <select id="sideLeft"><option value="none">None</option><option value="shadow">Shadow</option><option value="grass">Grass</option></select></label>
+<label>Effect width <output id="sideWidthValue">3 px</output><input id="sideWidth" type="range" min="1" max="8" value="3"></label>
+<label>Shadow color <input id="shadowColor" type="color" value="#202b19"></label>
+<label>Shadow opacity <output id="shadowOpacityValue">40%</output><input id="shadowOpacity" type="range" min="0" max="100" value="40"></label>
+<label>Grass color <input id="grassColor" type="color" value="#8eaf49"></label>
+</fieldset>
+<label>Texture seed<input id="seed" type="number" min="0" max="999999" value="21"></label>
+<button id="reseed" class="secondary">↻ New texture variation</button>
+<div class="separator"></div><label class="check"><input id="grid" type="checkbox" checked> Show tile grid</label><label class="check"><input id="mask" type="checkbox"> Preview masks</label>
+<button id="exportAtlas" class="primary">Export tile atlas ↗</button><button id="exportJson" class="secondary">Export atlas JSON</button><p class="hint">Export PNG and JSON with the same settings. Keep both files together.</p><button id="exportMap" class="secondary">Export map PNG</button><p class="hint"><span id="tileSizeHint">32</span> px tiles · 8-column atlas · transparent mask export when preview is enabled.</p>
+</aside>
+<section class="panel editor"><div class="panel-title">The playground <span id="mapInfo">24 × 16 TILES</span></div><div class="toolbar"><div class="tools"><button id="paint" class="active" aria-pressed="true">✎ Paint</button><button id="erase" aria-pressed="false">◇ Erase</button></div><div class="tools"><button id="demo">Example</button><button id="clear">Clear</button></div></div><div class="canvas-wrap"><canvas id="map" width="768" height="512" aria-label="Terrain editor. Click or drag to paint; right-click to erase."></canvas></div><div class="caption"><span><i></i> Edges update as you draw</span><span>DRAG TO PAINT · RIGHT-CLICK TO ERASE</span></div></section>
+</div>
+<section class="panel atlas-panel"><div class="panel-title">Every edge, accounted for <span>47 CONNECTED VARIANTS</span></div><p class="hint">All valid combinations of sides and inner corners. Hover a tile to see its neighbor bitmask.</p><div id="atlas"></div></section>
+<footer>Built one pixel at a time.<span><span id="tileSizeFooter">32 × 32</span> / 8-NEIGHBOR BLOB AUTOTILING</span></footer>
+<p id="status" role="status"></p>
+</main><script src="app.js"></script>
+</body></html>
