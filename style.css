@@ -5,3 +5,4 @@ select{background:var(--bg);color:inherit;border:1px solid var(--line);padding:8
 .side-effects{min-width:0;margin:22px 0 0;padding:0;border:0;border-top:1px solid var(--line)}.side-effects legend{padding:0 8px 0 0;color:var(--accent);font-size:12px}.side-effects label{margin:14px 0}@media(max-width:850px){.side-effects{grid-column:1/-1}}
 
 .transparency-preview,#atlas canvas{background-color:#242924;background-image:conic-gradient(#363c36 25%,transparent 0 50%,#363c36 0 75%,transparent 0);background-size:16px 16px}
+.zoom-tools{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}.zoom-tools output{min-width:44px;text-align:center;font-size:12px}.zoom-tools button:disabled{opacity:.4;cursor:default}#mapViewport{overflow:auto;scrollbar-gutter:stable;flex:none;margin:auto 0;overscroll-behavior:contain}#mapViewport:focus-visible{outline:2px solid var(--accent);outline-offset:3px}#map{max-width:none}

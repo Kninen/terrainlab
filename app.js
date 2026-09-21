@@ -9,6 +9,25 @@ function surface(w=T,h=T){const c=document.createElement('canvas');c.width=w;c.h
 function context(c){const x=c.getContext('2d');x.imageSmoothingEnabled=false;return x;}
 let cells=new Uint8Array(W*H),tiles=new Map(),masks=new Map(),base,overlay,tool=1,drawing=false,last=null;
 const images={};
+let mapZoom=1;
+function updateMapZoom(){
+  const viewport=$('mapViewport'),c=$('map');
+  viewport.style.height=Math.max(220,Math.min(520,viewport.clientWidth*c.height/c.width+18))+'px';
+  c.style.width=viewport.clientWidth*mapZoom+'px';
+  $('zoomValue').value=Math.round(mapZoom*100)+'%';
+  $('zoomOut').disabled=mapZoom<=1;$('zoomIn').disabled=mapZoom>=8;
+}
+function setMapZoom(value,clientX,clientY){
+  const viewport=$('mapViewport'),c=$('map'),rect=c.getBoundingClientRect(),box=viewport.getBoundingClientRect();
+  const anchorX=clientX??box.left+viewport.clientLeft+viewport.clientWidth/2;
+  const anchorY=clientY??box.top+viewport.clientTop+viewport.clientHeight/2;
+  const u=(anchorX-rect.left)/rect.width,v=(anchorY-rect.top)/rect.height;
+  mapZoom=Math.max(1,Math.min(8,value));last=null;
+  updateMapZoom();
+  const next=c.getBoundingClientRect();
+  viewport.scrollLeft+=next.left+u*next.width-anchorX;
+  viewport.scrollTop+=next.top+v*next.height-anchorY;
+}
 function texture(color,seed,img){const c=surface(),x=context(c);x.fillStyle=color;x.fillRect(0,0,T,T);if($('noTexture').checked)return c;if(img){x.drawImage(img,0,0,T,T);return c;}const random=rng(seed);for(let i=0;i<Math.round(75*T*T/1024);i++){x.fillStyle=i%2?'rgba(255,255,190,.13)':'rgba(20,35,10,.13)';x.fillRect(Math.floor(random()*T),Math.floor(random()*T),1+Math.floor(random()*3),1);}return c;}
 // A quadrant is governed by its two sides and its diagonal. Canonical profiles
 // use distance from the corner so both tiles sharing an edge use identical cuts.
@@ -30,7 +49,7 @@ if(!horizontal&&!vertical){
 else if(!horizontal)keep=u>=depth+profile[v];else if(!vertical)keep=v>=depth+profile[u];else if(!diagonal)keep=(1-roundness)*Math.max(u,v)+roundness*Math.hypot(u,v)>=depth+profile[Math.min(u,v)];
 if(keep){const i=(y*T+px)*4;data.data[i]=data.data[i+1]=data.data[i+2]=data.data[i+3]=255;}}
 x.putImageData(data,0,0);return c;}
-function rebuild(){const seed=Number($('seed').value)||0,depth=+$('depth').value,rough=+$('rough').value;$('roundValue').value=$('round').value+'%';$('depthValue').value=depth+' px';$('roughValue').value=rough+' px';base=$('transparentBase').checked?surface():texture($('base').value,seed,images.base);overlay=texture($('overlay').value,seed+1,images.overlay);tiles.clear();masks.clear();for(const b of variants){const mask=makeMask(b,depth,rough,seed,+$('round').value/100,$('edgeStyle').value),layer=surface(),lx=context(layer);lx.drawImage(overlay,0,0);lx.globalCompositeOperation='destination-in';lx.drawImage(mask,0,0);const tile=surface(),tx=context(tile);tx.drawImage(base,0,0);if($('transparentOverlay').checked){tx.globalCompositeOperation='destination-out';tx.drawImage(mask,0,0);tx.globalCompositeOperation='source-over';}else tx.drawImage(layer,0,0);tiles.set(b,tile);masks.set(b,mask);}applySideEffects();renderAtlas();draw();}
+function rebuild(){const seed=Number($('seed').value)||0,depth=+$('depth').value,rough=+$('rough').value;$('roundValue').value=$('round').value+'%';$('depthValue').value=depth+' px';$('roughValue').value=rough+' px';base=$('transparentBase').checked?surface():texture($('base').value,seed,images.base);overlay=texture($('overlay').value,seed+1,images.overlay);tiles.clear();masks.clear();for(const b of activeVariants()){const mask=(isHex()?makeHexMask:makeMask)(b,depth,rough,seed,+$('round').value/100,$('edgeStyle').value),layer=surface(),lx=context(layer);lx.drawImage(overlay,0,0);lx.globalCompositeOperation='destination-in';lx.drawImage(mask,0,0);const tile=surface(),tx=context(tile);tx.drawImage(base,0,0);if($('transparentOverlay').checked){tx.globalCompositeOperation='destination-out';tx.drawImage(mask,0,0);tx.globalCompositeOperation='source-over';}else tx.drawImage(layer,0,0);tiles.set(b,tile);masks.set(b,mask);}applySideEffects();if(isHex())clipHexTiles();renderAtlas();draw();}
 const sideDirections=[['Top',0,-1],['Right',1,0],['Bottom',0,1],['Left',-1,0]];
 function sideSettings(){return Object.fromEntries(sideDirections.map(([name])=>[name.toLowerCase(),$('side'+name).value]));}
 function applySideEffects(){
@@ -41,7 +60,7 @@ function applySideEffects(){
   if(!selected.length)return;
   const width=+$('sideWidth').value,seed=Number($('seed').value)||0;
   const reaches=selected.map(([mode,dx])=>Array.from({length:T},(_,t)=>mode==='grass'?Math.max(1,Math.round(width*(.4+rng(seed+Math.min(t,T-1-t)*7919+(dx?101:211))()*.6))):width));
-  for(const b of variants){
+  for(const b of activeVariants()){
     const alpha=context(masks.get(b)).getImageData(0,0,T,T).data,x=context(tiles.get(b));
     x.save();
     // Search for real contours, including inner corners, never tile borders.
@@ -53,6 +72,7 @@ function applySideEffects(){
         for(let d=1;d<=reach;d++){
           const nx=px+dx*d,ny=y+dy*d;
           if(nx<0||ny<0||nx>=T||ny>=T)break;
+          if(isHex()&&!hexInside(nx+.5,ny+.5))break;
           if(!alpha[(ny*T+nx)*4+3]){
             if(mode==='grass'){grass=true;tip=tip||d===reach;}else shadow=true;
             break;
@@ -66,19 +86,45 @@ function applySideEffects(){
   }
 }
 function bitAt(x,y){let b=0;for(const [dx,dy,bit]of directions){const nx=x+dx,ny=y+dy;if(nx>=0&&ny>=0&&nx<W&&ny<H&&cells[ny*W+nx])b|=bit;}return normalize(b);}
-function drawTo(c,grid=false){const x=context(c),maskMode=$('mask').checked;x.clearRect(0,0,c.width,c.height);for(let y=0;y<H;y++)for(let col=0;col<W;col++){if(cells[y*W+col])x.drawImage((maskMode?masks:tiles).get(bitAt(col,y)),col*T,y*T);else if(!maskMode)x.drawImage(base,col*T,y*T);}if(grid){x.strokeStyle='rgba(25,35,18,.18)';x.lineWidth=1;x.beginPath();for(let i=1;i<W;i++){x.moveTo(i*T+.5,0);x.lineTo(i*T+.5,H*T);}for(let i=1;i<H;i++){x.moveTo(0,i*T+.5);x.lineTo(W*T,i*T+.5);}x.stroke();}}
-function draw(){drawTo($('map'),$('grid').checked);$('map').parentElement.classList.toggle('transparency-preview',$('mask').checked||$('transparentBase').checked||$('transparentOverlay').checked);}
-function renderAtlas(){const host=$('atlas');host.replaceChildren();for(const b of variants){const c=surface();context(c).drawImage(($('mask').checked?masks:tiles).get(b),0,0);c.title=`Neighbor mask ${b} · 0x${b.toString(16).padStart(2,'0')}`;host.append(c);}}
+function drawFlatTo(c,grid=false){const x=context(c),maskMode=$('mask').checked;x.clearRect(0,0,c.width,c.height);for(let y=0;y<H;y++)for(let col=0;col<W;col++){if(cells[y*W+col])x.drawImage((maskMode?masks:tiles).get(bitAt(col,y)),col*T,y*T);else if(!maskMode)x.drawImage(base,col*T,y*T);}if(grid){x.strokeStyle='rgba(25,35,18,.18)';x.lineWidth=1;x.beginPath();for(let i=1;i<W;i++){x.moveTo(i*T+.5,0);x.lineTo(i*T+.5,H*T);}for(let i=1;i<H;i++){x.moveTo(0,i*T+.5);x.lineTo(W*T,i*T+.5);}x.stroke();}}
+function isIsometric(){return $('mapView').value==='isometric';}
+function flatMapDimensions(){return isHex()?[Math.ceil((W+.5)*T),Math.ceil((H*.75+.25)*T)]:[W*T,H*T];}
+function mapDimensions(){const [w,h]=flatMapDimensions();return isIsometric()?[Math.ceil((w+h)/2),Math.ceil((w+h)/4)]:[w,h];}
+function drawTo(c,grid=false){
+  const render=isHex()?drawHexTo:drawFlatTo;
+  if(!isIsometric()){render(c,grid);return;}
+  // Project the complete flat map so adjacent tile edges cannot develop seams.
+  const [w,h]=flatMapDimensions(),flat=surface(w,h);render(flat,grid);
+  const x=context(c);x.clearRect(0,0,c.width,c.height);
+  x.save();x.setTransform(.5,.25,-.5,.25,h/2,0);x.drawImage(flat,0,0);x.restore();
+}
+function draw(){
+  const c=$('map'),[width,height]=mapDimensions();
+  if(c.width!==width||c.height!==height){c.width=width;c.height=height;}
+  updateMapZoom();
+  drawTo(c,$('grid').checked);
+  c.parentElement.classList.toggle('transparency-preview',isHex()||isIsometric()||$('mask').checked||$('transparentBase').checked||$('transparentOverlay').checked);
+}
+function renderAtlas(){const host=$('atlas');host.replaceChildren();for(const b of activeVariants()){const c=surface();context(c).drawImage(($('mask').checked?masks:tiles).get(b),0,0);c.title=`Neighbor mask ${b} · 0x${b.toString(16).padStart(2,'0')}`;host.append(c);}}
 function example(){cells.fill(0);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const island=((x-8)/6)**2+((y-7)/5)**2<1;const second=((x-18)/3.5)**2+((y-10)/3)**2<1;const hole=(x===7||x===8)&&(y===6||y===7);if((island||second)&&!hole)cells[y*W+x]=1;}draw();}
 function setTool(v){tool=v;for(const [id,value]of [['paint',1],['erase',0]]){$(id).classList.toggle('active',v===value);$(id).setAttribute('aria-pressed',String(v===value));}}
-function position(e){const r=$('map').getBoundingClientRect();return [Math.max(0,Math.min(W-1,Math.floor((e.clientX-r.left)/r.width*W))),Math.max(0,Math.min(H-1,Math.floor((e.clientY-r.top)/r.height*H)))];}
-function stroke(e){const p=position(e),from=last||p,steps=Math.max(Math.abs(p[0]-from[0]),Math.abs(p[1]-from[1]),1);for(let i=0;i<=steps;i++){const x=Math.round(from[0]+(p[0]-from[0])*i/steps),y=Math.round(from[1]+(p[1]-from[1])*i/steps);cells[y*W+x]=(e.buttons&2)?0:tool;}last=p;draw();}
+function position(e){
+  const c=$('map'),r=c.getBoundingClientRect();
+  if(!r.width||!r.height)return null;
+  const sx=(e.clientX-r.left)/r.width*c.width,sy=(e.clientY-r.top)/r.height*c.height;
+  const offset=flatMapDimensions()[1]/2;
+  const x=isIsometric()?sx-offset+2*sy:sx,y=isIsometric()?2*sy-(sx-offset):sy;
+  if(isHex())return hexPosition(x,y);
+  const col=Math.floor(x/T),row=Math.floor(y/T);
+  return col>=0&&col<W&&row>=0&&row<H?[col,row]:null;
+}
+function stroke(e){const p=position(e);if(!p){last=null;return;}if(isHex()){for(const [x,y] of hexLine(last||p,p))cells[y*W+x]=(e.buttons&2)?0:tool;last=p;draw();return;}const from=last||p,steps=Math.max(Math.abs(p[0]-from[0]),Math.abs(p[1]-from[1]),1);for(let i=0;i<=steps;i++){const x=Math.round(from[0]+(p[0]-from[0])*i/steps),y=Math.round(from[1]+(p[1]-from[1])*i/steps);cells[y*W+x]=(e.buttons&2)?0:tool;}last=p;draw();}
 $('map').addEventListener('pointerdown',e=>{if(e.button!==0&&e.button!==2)return;drawing=true;last=null;$('map').setPointerCapture(e.pointerId);stroke(e);});$('map').addEventListener('pointermove',e=>{if(drawing)stroke(e);});for(const event of ['pointerup','pointercancel','lostpointercapture'])$('map').addEventListener(event,()=>{drawing=false;last=null;});$('map').addEventListener('contextmenu',e=>e.preventDefault());
 $('paint').onclick=()=>setTool(1);$('erase').onclick=()=>setTool(0);$('demo').onclick=example;$('clear').onclick=()=>{cells.fill(0);draw();};for(const id of ['base','overlay','depth','rough','round','seed','edgeStyle'])$(id).addEventListener('input',()=>{if(id==='base'||id==='overlay')delete images[id];rebuild();});$('grid').onchange=draw;$('mask').onchange=()=>{renderAtlas();draw();};$('reseed').onclick=()=>{$('seed').value=Math.floor(Math.random()*1000000);rebuild();};
 for(const kind of ['base','overlay'])$(kind+'File').onchange=()=>{const file=$(kind+'File').files[0];if(!file)return;const url=URL.createObjectURL(file),img=new Image();img.onload=()=>{images[kind]=img;URL.revokeObjectURL(url);rebuild();$('status').textContent=`Loaded ${kind} texture: ${file.name}`;};img.onerror=()=>{URL.revokeObjectURL(url);$('status').textContent='That image could not be loaded. Try a PNG or JPG.';};img.src=url;};
 function downloadBlob(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);$('status').textContent=`Exported ${name}`;}
 function download(c,name){c.toBlob(blob=>{if(blob)downloadBlob(blob,name);});}
-function atlasMetadata(){
+function squareMetadata(){
   const maskMode=$('mask').checked;
   const names=['N','E','S','W','NE','SE','SW','NW'];
   return {
@@ -103,8 +149,9 @@ function atlasMetadata(){
     notes:['This metadata describes the current export settings. Export its PNG without changing settings.','Uploaded source images are not embedded; the PNG contains the rendered result.','This is a custom atlas format; an engine importer must use the supplied coordinates and neighbor lookup.']
   };
 }
-$('exportJson').onclick=()=>downloadBlob(new Blob([JSON.stringify(atlasMetadata(),null,2)+'\n'],{type:'application/json'}),$('mask').checked?'terrain-masks.json':'terrain-atlas.json');
-$('exportAtlas').onclick=()=>{const c=surface(8*T,6*T),x=context(c);variants.forEach((b,i)=>x.drawImage(($('mask').checked?masks:tiles).get(b),(i%8)*T,Math.floor(i/8)*T));download(c,$('mask').checked?'terrain-masks.png':'terrain-atlas.png');};$('exportMap').onclick=()=>{const c=surface(W*T,H*T);drawTo(c);download(c,'terrain-map.png');};
+function atlasMetadata(){const meta=squareMetadata();return isHex()?hexMetadata(meta):meta;}
+$('exportJson').onclick=()=>downloadBlob(new Blob([JSON.stringify(atlasMetadata(),null,2)+'\n'],{type:'application/json'}),atlasMetadata().image.replace('.png','.json'));
+$('exportAtlas').onclick=()=>{const c=surface(8*T,(isHex()?8:6)*T),x=context(c);activeVariants().forEach((b,i)=>x.drawImage(($('mask').checked?masks:tiles).get(b),(i%8)*T,Math.floor(i/8)*T));download(c,atlasMetadata().image);};$('exportMap').onclick=()=>{const c=surface(...mapDimensions());drawTo(c);download(c,'terrain-map'+(isHex()?'-hex':'')+(isIsometric()?'-isometric':'')+'.png');};
 for(const id of ['sideTop','sideRight','sideBottom','sideLeft','sideWidth','shadowColor','shadowOpacity','grassColor'])$(id).addEventListener('input',rebuild);
 for(const id of ['noTexture','transparentBase','transparentOverlay'])$(id).onchange=rebuild;
 $('tileSize').onchange=()=>{
@@ -118,4 +165,23 @@ $('tileSize').onchange=()=>{
   $('tileSizeHint').textContent=T;$('tileSizeFooter').textContent=T+' × '+T;
   rebuild();
 };
+$('tileShape').onchange=()=>{
+  drawing=false;last=null;
+  $('round').disabled=isHex();
+  $('atlasCount').textContent=isHex()?'64 HEX VARIANTS':'47 CONNECTED VARIANTS';
+  $('topologyFooter').textContent=isHex()?'6-NEIGHBOR HEX AUTOTILING':'8-NEIGHBOR BLOB AUTOTILING';
+  $('shapeHint').textContent=isHex()?'Hex tiles use six neighbors and support normal and isometric views. Roundness is available for square tiles.':'Square tiles support normal and isometric views.';
+  rebuild();
+};
+$('mapView').onchange=()=>{drawing=false;last=null;draw();};
+$('zoomIn').onclick=()=>setMapZoom(mapZoom*1.25);
+$('zoomOut').onclick=()=>setMapZoom(mapZoom/1.25);
+$('zoomFit').onclick=()=>{setMapZoom(1);$('mapViewport').scrollLeft=0;$('mapViewport').scrollTop=0;};
+$('mapViewport').addEventListener('wheel',e=>{
+  if(e.ctrlKey||e.metaKey||e.shiftKey||!e.deltaY)return;
+  e.preventDefault();
+  const delta=e.deltaY*(e.deltaMode===1?16:e.deltaMode===2?$('mapViewport').clientHeight:1);
+  setMapZoom(mapZoom*Math.exp(-Math.max(-120,Math.min(120,delta))*.002),e.clientX,e.clientY);
+},{passive:false});
+new ResizeObserver(updateMapZoom).observe($('mapViewport'));
 rebuild();example();

@@ -11,6 +11,10 @@
 <section class="intro"><div class="eyebrow">CONNECTED BY DESIGN</div><h1>A little texture.<br>A whole new world.</h1><p>Paint your terrain. Let the edges take care of themselves.</p></section>
 <div class="workspace">
 <aside class="panel"><div class="panel-title">Terrain settings <span>01</span></div>
+<label>Tile shape <select id="tileShape"><option value="square">Square (normal)</option><option value="hex">Hexagonal</option></select></label>
+<p class="hint" id="shapeHint">Square tiles support normal and isometric views.</p>
+<label>Map view <select id="mapView"><option value="normal">Normal (top-down)</option><option value="isometric">Isometric</option></select></label>
+<p class="hint">Map PNG follows the selected layout. Atlas PNG and JSON follow the tile shape. Side effects use the original tile directions.</p>
 <label>Tile size <select id="tileSize"><option value="8">8 × 8 px</option><option value="16">16 × 16 px</option><option value="24">24 × 24 px</option><option value="32" selected>32 × 32 px</option><option value="48">48 × 48 px</option><option value="64">64 × 64 px</option><option value="128">128 × 128 px</option></select></label>
 <label>Base terrain <input id="base" type="color" value="#baa83a"></label>
 <label class="check"><input id="transparentBase" type="checkbox"> Transparent base</label>
@@ -42,10 +46,10 @@
 <div class="separator"></div><label class="check"><input id="grid" type="checkbox" checked> Show tile grid</label><label class="check"><input id="mask" type="checkbox"> Preview masks</label>
 <button id="exportAtlas" class="primary">Export tile atlas ↗</button><button id="exportJson" class="secondary">Export atlas JSON</button><p class="hint">Export PNG and JSON with the same settings. Keep both files together.</p><button id="exportMap" class="secondary">Export map PNG</button><p class="hint"><span id="tileSizeHint">32</span> px tiles · 8-column atlas · transparent mask export when preview is enabled.</p>
 </aside>
-<section class="panel editor"><div class="panel-title">The playground <span id="mapInfo">24 × 16 TILES</span></div><div class="toolbar"><div class="tools"><button id="paint" class="active" aria-pressed="true">✎ Paint</button><button id="erase" aria-pressed="false">◇ Erase</button></div><div class="tools"><button id="demo">Example</button><button id="clear">Clear</button></div></div><div class="canvas-wrap"><canvas id="map" width="768" height="512" aria-label="Terrain editor. Click or drag to paint; right-click to erase."></canvas></div><div class="caption"><span><i></i> Edges update as you draw</span><span>DRAG TO PAINT · RIGHT-CLICK TO ERASE</span></div></section>
+<section class="panel editor"><div class="panel-title">The playground <span id="mapInfo">24 × 16 TILES</span></div><div class="toolbar"><div class="tools"><button id="paint" class="active" aria-pressed="true">✎ Paint</button><button id="erase" aria-pressed="false">◇ Erase</button></div><div class="tools"><button id="demo">Example</button><button id="clear">Clear</button></div></div><div class="zoom-tools" role="group" aria-label="Map zoom"><button id="zoomOut" aria-label="Zoom out">−</button><output id="zoomValue" aria-live="polite">100%</output><button id="zoomIn" aria-label="Zoom in">+</button><button id="zoomFit">Reset zoom</button><span class="hint">Scroll to zoom · use scrollbars to pan</span></div><div class="canvas-wrap" id="mapViewport" tabindex="0" role="region" aria-label="Scrollable map viewport"><canvas id="map" width="768" height="512" aria-label="Terrain editor. Click or drag to paint; right-click to erase."></canvas></div><div class="caption"><span><i></i> Edges update as you draw</span><span>DRAG TO PAINT · RIGHT-CLICK TO ERASE</span></div></section>
 </div>
-<section class="panel atlas-panel"><div class="panel-title">Every edge, accounted for <span>47 CONNECTED VARIANTS</span></div><p class="hint">All valid combinations of sides and inner corners. Hover a tile to see its neighbor bitmask.</p><div id="atlas"></div></section>
-<footer>Built one pixel at a time.<span><span id="tileSizeFooter">32 × 32</span> / 8-NEIGHBOR BLOB AUTOTILING</span></footer>
+<section class="panel atlas-panel"><div class="panel-title">Every edge, accounted for <span id="atlasCount">47 CONNECTED VARIANTS</span></div><p class="hint">All connected tile combinations for the selected shape. Hover a tile to see its neighbor bitmask.</p><div id="atlas"></div></section>
+<footer>Built one pixel at a time.<span><span id="tileSizeFooter">32 × 32</span> / <span id="topologyFooter">8-NEIGHBOR BLOB AUTOTILING</span></span></footer>
 <p id="status" role="status"></p>
-</main><script src="app.js"></script>
+</main><script src="hex.js"></script><script src="app.js"></script>
 </body></html>

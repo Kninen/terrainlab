@@ -8,6 +8,7 @@ A browser-based pixel terrain editor and autotile atlas generator. Paint a map, 
 
 - **47-variant blob autotiling:** automatic transitions using eight neighbors, including inner corners and diagonal normalization.
 - **Interactive map editor:** paint and erase on a 24 × 16 tile map, drag continuous strokes, right-click to erase, restore the example map, or clear the map.
+- **Normal / isometric map view:** switch between top-down squares and 2:1 isometric diamonds without losing edits. Painting, erasing, grids, masks, and side effects work in either view. Map PNG exports use the selected view (isometric exports have transparent space outside the map); atlas PNG/JSON keep their square tiles. Side directions refer to the original square tiles. This is a flat projection without elevation or vertical walls.
 - **Selectable tile sizes:** 8, 16, 24, 32, 48, 64, and 128 pixels. Changing size rebuilds the atlas and scales edge settings while preserving painted cells.
 - **Terrain colors:** separate base and overlay color pickers.
 - **Procedural textures:** seeded pixel details with a random variation button. The seed also controls organic edge variation.
@@ -37,6 +38,12 @@ For XAMPP, place the `terrainlab` directory inside `htdocs`, start Apache, and o
 The stylesheet loads DM Sans and Space Grotesk from Google Fonts when available; local sans-serif fallbacks work offline.
 
 ## Usage
+
+Choose **Tile shape → Hexagonal** for a pointy-top hex grid with six neighbors and staggered odd rows. Switching shapes preserves occupied cells. Hex mode supports normal and isometric views, painting, erasing, zoom, textures, transparency, and side effects; roundness is square-only. The four side-effect controls follow the original top-down directions, and rotate with the map in isometric view. Map PNG exports match the selected view; atlas PNG/JSON retain the unprojected hex tiles.
+
+Hex atlas exports contain 64 variants in an 8 × 8 sheet, with transparent corners in each square image slot. Matching JSON describes the six neighbor bits, even/odd row offsets, tile coordinates, and placement steps. Hex map PNG exports use the staggered layout.
+
+Use the mouse wheel over the map or the + / − buttons to zoom from 100% to 800%. Wheel zoom stays anchored at the pointer. Use the viewport scrollbars to pan and Reset zoom to return to 100%. Zoom works in both views and does not change exported image sizes. Ctrl / Command + wheel remains available for browser zoom.
 
 1. Choose a tile size and base/overlay colors or upload texture images.
 2. Adjust edge style, depth, roughness, and roundness. Set roughness to zero for clean edges.
@@ -91,6 +98,7 @@ Mask `0` represents an isolated **occupied** tile, not an empty map cell. The at
 | `index.html` | Editor interface |
 | `style.css` | Responsive layout and pixel previews |
 | `app.js` | Mask generation, painting, rendering, and exports |
+| `hex.js` | Hex geometry, six-neighbor masks, brush paths, and export metadata |
 | `screenshot.png` | README screenshot |
 | `LICENSE` | MIT license |
 
