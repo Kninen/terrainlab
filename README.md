@@ -39,6 +39,10 @@ The stylesheet loads DM Sans and Space Grotesk from Google Fonts when available;
 
 ## Usage
 
+Choose **Outline → Organic outline** for a continuous boundary shaped across neighboring cells. **Curve size** sets the span of its broad variations; **Irregularity** controls their strength. Texture seed also changes the outline. Edge depth adjusts the inset. **Edge style** adds Organic soft detail, Smooth contours, Stepped blocks, or Jagged teeth while preserving the broad flow. Roughness controls fine detail; zero roughness matches Smooth. Detail uses map coordinates so it continues across tile boundaries. Roundness is disabled in this mode. Very narrow features can shrink as the outline is smoothed.
+
+Organic mode works with square/hex painting, both views, transparency, masks, and directional effects. Its atlas is a **map-specific set of rectangular image chunks**, rather than reusable neighbor-mask variants. PNG and JSON reconstruct the exact top-down map using each tile's `mapX`/`mapY`; hex maps also use rectangular chunks. Map PNG follows the selected view. Switch back to Standard tiles for reusable 47/64-variant atlases.
+
 Choose **Tile shape → Hexagonal** for a pointy-top hex grid with six neighbors and staggered odd rows. Switching shapes preserves occupied cells. Hex mode supports normal and isometric views, painting, erasing, zoom, textures, transparency, and side effects; roundness is square-only. The four side-effect controls follow the original top-down directions, and rotate with the map in isometric view. Map PNG exports match the selected view; atlas PNG/JSON retain the unprojected hex tiles.
 
 Hex atlas exports contain 64 variants in an 8 × 8 sheet, with transparent corners in each square image slot. Matching JSON describes the six neighbor bits, even/odd row offsets, tile coordinates, and placement steps. Hex map PNG exports use the staggered layout.
@@ -99,6 +103,7 @@ Mask `0` represents an isolated **occupied** tile, not an empty map cell. The at
 | `style.css` | Responsive layout and pixel previews |
 | `app.js` | Mask generation, painting, rendering, and exports |
 | `hex.js` | Hex geometry, six-neighbor masks, brush paths, and export metadata |
+| `organic.js` | Continuous map outlines and matching baked tile exports |
 | `screenshot.png` | README screenshot |
 | `LICENSE` | MIT license |
 

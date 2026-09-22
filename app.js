@@ -91,7 +91,7 @@ function isIsometric(){return $('mapView').value==='isometric';}
 function flatMapDimensions(){return isHex()?[Math.ceil((W+.5)*T),Math.ceil((H*.75+.25)*T)]:[W*T,H*T];}
 function mapDimensions(){const [w,h]=flatMapDimensions();return isIsometric()?[Math.ceil((w+h)/2),Math.ceil((w+h)/4)]:[w,h];}
 function drawTo(c,grid=false){
-  const render=isHex()?drawHexTo:drawFlatTo;
+  const render=organicEnabled()?drawOrganicTo:isHex()?drawHexTo:drawFlatTo;
   if(!isIsometric()){render(c,grid);return;}
   // Project the complete flat map so adjacent tile edges cannot develop seams.
   const [w,h]=flatMapDimensions(),flat=surface(w,h);render(flat,grid);
@@ -103,9 +103,10 @@ function draw(){
   if(c.width!==width||c.height!==height){c.width=width;c.height=height;}
   updateMapZoom();
   drawTo(c,$('grid').checked);
+  if(organicEnabled()&&organicPreview!==organicCache)renderOrganicAtlas();
   c.parentElement.classList.toggle('transparency-preview',isHex()||isIsometric()||$('mask').checked||$('transparentBase').checked||$('transparentOverlay').checked);
 }
-function renderAtlas(){const host=$('atlas');host.replaceChildren();for(const b of activeVariants()){const c=surface();context(c).drawImage(($('mask').checked?masks:tiles).get(b),0,0);c.title=`Neighbor mask ${b} · 0x${b.toString(16).padStart(2,'0')}`;host.append(c);}}
+function renderAtlas(){if(organicEnabled()){renderOrganicAtlas();return;}const host=$('atlas');host.replaceChildren();for(const b of activeVariants()){const c=surface();context(c).drawImage(($('mask').checked?masks:tiles).get(b),0,0);c.title=`Neighbor mask ${b} · 0x${b.toString(16).padStart(2,'0')}`;host.append(c);}}
 function example(){cells.fill(0);for(let y=0;y<H;y++)for(let x=0;x<W;x++){const island=((x-8)/6)**2+((y-7)/5)**2<1;const second=((x-18)/3.5)**2+((y-10)/3)**2<1;const hole=(x===7||x===8)&&(y===6||y===7);if((island||second)&&!hole)cells[y*W+x]=1;}draw();}
 function setTool(v){tool=v;for(const [id,value]of [['paint',1],['erase',0]]){$(id).classList.toggle('active',v===value);$(id).setAttribute('aria-pressed',String(v===value));}}
 function position(e){
@@ -149,9 +150,9 @@ function squareMetadata(){
     notes:['This metadata describes the current export settings. Export its PNG without changing settings.','Uploaded source images are not embedded; the PNG contains the rendered result.','This is a custom atlas format; an engine importer must use the supplied coordinates and neighbor lookup.']
   };
 }
-function atlasMetadata(){const meta=squareMetadata();return isHex()?hexMetadata(meta):meta;}
+function atlasMetadata(){if(organicEnabled())return organicAtlasMetadata();const meta=squareMetadata();return isHex()?hexMetadata(meta):meta;}
 $('exportJson').onclick=()=>downloadBlob(new Blob([JSON.stringify(atlasMetadata(),null,2)+'\n'],{type:'application/json'}),atlasMetadata().image.replace('.png','.json'));
-$('exportAtlas').onclick=()=>{const c=surface(8*T,(isHex()?8:6)*T),x=context(c);activeVariants().forEach((b,i)=>x.drawImage(($('mask').checked?masks:tiles).get(b),(i%8)*T,Math.floor(i/8)*T));download(c,atlasMetadata().image);};$('exportMap').onclick=()=>{const c=surface(...mapDimensions());drawTo(c);download(c,'terrain-map'+(isHex()?'-hex':'')+(isIsometric()?'-isometric':'')+'.png');};
+$('exportAtlas').onclick=()=>{if(organicEnabled()){download(organicAtlasCanvas(),atlasMetadata().image);return;}const c=surface(8*T,(isHex()?8:6)*T),x=context(c);activeVariants().forEach((b,i)=>x.drawImage(($('mask').checked?masks:tiles).get(b),(i%8)*T,Math.floor(i/8)*T));download(c,atlasMetadata().image);};$('exportMap').onclick=()=>{const c=surface(...mapDimensions());drawTo(c);download(c,'terrain-map'+(isHex()?'-hex':'')+(isIsometric()?'-isometric':'')+'.png');};
 for(const id of ['sideTop','sideRight','sideBottom','sideLeft','sideWidth','shadowColor','shadowOpacity','grassColor'])$(id).addEventListener('input',rebuild);
 for(const id of ['noTexture','transparentBase','transparentOverlay'])$(id).onchange=rebuild;
 $('tileSize').onchange=()=>{
@@ -171,6 +172,7 @@ $('tileShape').onchange=()=>{
   $('atlasCount').textContent=isHex()?'64 HEX VARIANTS':'47 CONNECTED VARIANTS';
   $('topologyFooter').textContent=isHex()?'6-NEIGHBOR HEX AUTOTILING':'8-NEIGHBOR BLOB AUTOTILING';
   $('shapeHint').textContent=isHex()?'Hex tiles use six neighbors and support normal and isometric views. Roundness is available for square tiles.':'Square tiles support normal and isometric views.';
+  syncOutlineControls();
   rebuild();
 };
 $('mapView').onchange=()=>{drawing=false;last=null;draw();};
@@ -184,4 +186,6 @@ $('mapViewport').addEventListener('wheel',e=>{
   setMapZoom(mapZoom*Math.exp(-Math.max(-120,Math.min(120,delta))*.002),e.clientX,e.clientY);
 },{passive:false});
 new ResizeObserver(updateMapZoom).observe($('mapViewport'));
+for(const id of ['outlineMode','curveSize','irregularity'])$(id).addEventListener('input',()=>{syncOutlineControls();renderAtlas();draw();});
+syncOutlineControls();
 rebuild();example();
