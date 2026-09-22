@@ -39,6 +39,8 @@ The stylesheet loads DM Sans and Space Grotesk from Google Fonts when available;
 
 ## Usage
 
+Choose **Outline → Forest canopy** to turn the painted region into a forest silhouette with overlapping rounded crowns. Pick any **Forest color** (dark green by default), adjust **Canopy size**, and use **Shaded rim** for a dark border, highlights, and short overlapping arcs near the edge. A rim of 0 produces a flat silhouette. Forest color replaces the overlay texture in this mode; switching back restores ordinary terrain. Larger crowns expand the region and may close narrow gaps. Forest mode uses the same map-specific exports as Organic outline and supports square/hex maps, isometric view, masks, cutouts, and side effects.
+
 Choose **Outline → Organic outline** for a continuous boundary shaped across neighboring cells. **Curve size** sets the span of its broad variations; **Irregularity** controls their strength. Texture seed also changes the outline. Edge depth adjusts the inset. **Edge style** adds Organic soft detail, Smooth contours, Stepped blocks, or Jagged teeth while preserving the broad flow. Roughness controls fine detail; zero roughness matches Smooth. Detail uses map coordinates so it continues across tile boundaries. Roundness is disabled in this mode. Very narrow features can shrink as the outline is smoothed.
 
 Organic mode works with square/hex painting, both views, transparency, masks, and directional effects. Its atlas is a **map-specific set of rectangular image chunks**, rather than reusable neighbor-mask variants. PNG and JSON reconstruct the exact top-down map using each tile's `mapX`/`mapY`; hex maps also use rectangular chunks. Map PNG follows the selected view. Switch back to Standard tiles for reusable 47/64-variant atlases.
@@ -104,6 +106,7 @@ Mask `0` represents an isolated **occupied** tile, not an empty map cell. The at
 | `app.js` | Mask generation, painting, rendering, and exports |
 | `hex.js` | Hex geometry, six-neighbor masks, brush paths, and export metadata |
 | `organic.js` | Continuous map outlines and matching baked tile exports |
+| `forest.js` | Rounded canopy boundaries, chosen forest colors, and rim shading |
 | `screenshot.png` | README screenshot |
 | `LICENSE` | MIT license |
 

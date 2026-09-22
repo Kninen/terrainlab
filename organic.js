@@ -1,7 +1,7 @@
 'use strict';
 let organicCache=null,organicPreview=null;
-function organicEnabled(){return $('outlineMode').value==='organic';}
-function organicSettings(){return {curveSizeTiles:+$('curveSize').value,irregularityPercent:+$('irregularity').value,seed:Number($('seed').value)||0,edgeStyle:$('edgeStyle').value,roughnessPx:+$('rough').value};}
+function organicEnabled(){return $('outlineMode').value==='organic'||forestEnabled();}
+function organicSettings(){return {curveSizeTiles:+$('curveSize').value,irregularityPercent:+$('irregularity').value,seed:Number($('seed').value)||0,edgeStyle:$('edgeStyle').value,roughnessPx:+$('rough').value,forest:forestEnabled()?forestSettings():null};}
 function organicEdgeSample(x,y,settings){
   const rough=settings.roughnessPx,style=settings.edgeStyle;
   if(!rough||style==='smooth')return [x+.5,y+.5,0];
@@ -52,12 +52,15 @@ function organicMap(){
     const nx=fieldSample(noise,fw,fh,fx,fy),ny=fieldSample(noiseY,fw,fh,fx,fy),warp=amount*T*scale*2;
     if(fieldSample(field,fw,fh,fx+nx*warp,fy+ny*warp)>threshold+nx*amount*.5+detail){alpha[y*w+x]=1;data.data.fill(255,(y*w+x)*4,(y*w+x)*4+4);}
   }
+  const crowns=settings.forest?growForestCanopy(alpha,w,h,settings.forest,settings.seed):[];
+  if(settings.forest)for(let i=0;i<alpha.length;i++)if(alpha[i])data.data.fill(255,i*4,i*4+4);
   mx.putImageData(data,0,0);
   const terrain=surface(w,h),tx=context(terrain),layer=surface(w,h),lx=context(layer);
   tx.fillStyle=tx.createPattern(base,'repeat');tx.fillRect(0,0,w,h);
   if($('transparentOverlay').checked){tx.globalCompositeOperation='destination-out';tx.drawImage(mask,0,0);tx.globalCompositeOperation='source-over';}
   else{
-    lx.fillStyle=lx.createPattern(overlay,'repeat');lx.fillRect(0,0,w,h);lx.globalCompositeOperation='destination-in';lx.drawImage(mask,0,0);lx.globalCompositeOperation='source-over';
+    if(settings.forest)lx.drawImage(forestLayer(alpha,w,h,settings.forest,crowns),0,0);
+    else{lx.fillStyle=lx.createPattern(overlay,'repeat');lx.fillRect(0,0,w,h);lx.globalCompositeOperation='destination-in';lx.drawImage(mask,0,0);lx.globalCompositeOperation='source-over';}
     const selected=sideDirections.map(([name,dx,dy])=>[$('side'+name).value,dx,dy]).filter(([mode])=>mode!=='none'),width=+$('sideWidth').value;
     if(selected.length)for(let y=0;y<h;y++)for(let x=0;x<w;x++){
       if(!alpha[y*w+x])continue;
@@ -94,6 +97,8 @@ function renderOrganicAtlas(){
   organicPreview=map;
 }
 function syncOutlineControls(){
+  $('forestControls').hidden=!forestEnabled();
+  $('canopySizeValue').value=$('canopySize').value+' tiles';$('canopyRimValue').value=$('canopyRim').value+'%';
   const organic=organicEnabled();$('curveSize').disabled=!organic;$('irregularity').disabled=!organic;
   $('curveSizeValue').value=$('curveSize').value+' tiles';$('irregularityValue').value=$('irregularity').value+'%';
   $('round').disabled=organic||isHex();$('rough').disabled=false;$('edgeStyle').disabled=false;

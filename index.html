@@ -11,7 +11,13 @@
 <section class="intro"><div class="eyebrow">CONNECTED BY DESIGN</div><h1>A little texture.<br>A whole new world.</h1><p>Paint your terrain. Let the edges take care of themselves.</p></section>
 <div class="workspace">
 <aside class="panel"><div class="panel-title">Terrain settings <span>01</span></div>
-<label>Outline <select id="outlineMode"><option value="standard">Standard tiles</option><option value="organic">Organic outline</option></select></label>
+<label>Outline <select id="outlineMode"><option value="standard">Standard tiles</option><option value="organic">Organic outline</option><option value="forest">Forest canopy</option></select></label>
+<fieldset id="forestControls" class="side-effects" hidden><legend>Forest canopy</legend>
+<label>Forest color <input id="forestColor" type="color" value="#294f32"></label>
+<label>Canopy size <output id="canopySizeValue">1 tile</output><input id="canopySize" type="range" min="0.5" max="2" step="0.25" value="1"></label>
+<label>Shaded rim <output id="canopyRimValue">12%</output><input id="canopyRim" type="range" min="0" max="30" value="12"></label>
+<p class="hint">Paint a forest region with overlapping canopy edges. Forest color replaces the overlay texture. Larger crowns expand the edge and can close small gaps. Set rim to 0 for a flat silhouette.</p>
+</fieldset>
 <p class="hint">Organic outlines flow across tile boundaries. Exports contain tiles for this painted map, rather than reusable neighbor variants.</p>
 <label>Curve size <output id="curveSizeValue">2 tiles</output><input id="curveSize" type="range" min="0.5" max="6" step="0.5" value="2"></label>
 <label>Irregularity <output id="irregularityValue">65%</output><input id="irregularity" type="range" min="0" max="100" value="65"></label>
@@ -55,5 +61,5 @@
 <section class="panel atlas-panel"><div class="panel-title">Every edge, accounted for <span id="atlasCount">47 CONNECTED VARIANTS</span></div><p class="hint">Standard mode shows reusable neighbor variants. Organic mode shows the tiles that reconstruct your painted map.</p><div id="atlas"></div></section>
 <footer>Built one pixel at a time.<span><span id="tileSizeFooter">32 × 32</span> / <span id="topologyFooter">8-NEIGHBOR BLOB AUTOTILING</span></span></footer>
 <p id="status" role="status"></p>
-</main><script src="hex.js"></script><script src="organic.js?v=2"></script><script src="app.js?v=organic-1"></script>
+</main><script src="hex.js"></script><script src="forest.js?v=1"></script><script src="organic.js?v=3"></script><script src="app.js?v=forest-1"></script>
 </body></html>

@@ -186,6 +186,6 @@ $('mapViewport').addEventListener('wheel',e=>{
   setMapZoom(mapZoom*Math.exp(-Math.max(-120,Math.min(120,delta))*.002),e.clientX,e.clientY);
 },{passive:false});
 new ResizeObserver(updateMapZoom).observe($('mapViewport'));
-for(const id of ['outlineMode','curveSize','irregularity'])$(id).addEventListener('input',()=>{syncOutlineControls();renderAtlas();draw();});
+for(const id of ['outlineMode','curveSize','irregularity','forestColor','canopySize','canopyRim'])$(id).addEventListener('input',()=>{syncOutlineControls();renderAtlas();draw();});
 syncOutlineControls();
 rebuild();example();

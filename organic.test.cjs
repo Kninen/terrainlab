@@ -9,6 +9,7 @@ vm.runInContext(`let T=16;const W=24,H=16,$=id=>controls[id],cells=new Uint8Arra
 const app=fs.readFileSync(__dirname+'/app.js','utf8');
 vm.runInContext(app.slice(app.indexOf('function rng('),app.indexOf('\nfunction surface(')),env);
 vm.runInContext(fs.readFileSync(__dirname+'/hex.js','utf8'),env);
+vm.runInContext(fs.readFileSync(__dirname+'/forest.js','utf8'),env);
 vm.runInContext(fs.readFileSync(__dirname+'/organic.js','utf8'),env);
 vm.runInContext(`
 const count=map=>map.mask.pixels.reduce((n,a,i)=>n+(i%4===3&&a>0?1:0),0);
@@ -38,5 +39,18 @@ for(const shape of ['square','hex']){
  $('mask').checked=true;assert.equal(organicAtlasCanvas().calls[0][0],organicMap().mask,'mask atlas uses same outline');$('mask').checked=false;
  $('transparentOverlay').checked=true;const cutout=organicMap();assert.equal(cutout.terrain.calls[0][0],cutout.mask,'cutout uses identical mask');$('transparentOverlay').checked=false;
 }
-console.log('PASS: empty/isolated maps, determinism, controls, cache, hex footprint, mask/cutout composition, and exact atlas placement.');
+T=8;$('tileShape').value='square';$('depth').value=1;
+controls.forestColor={value:'#294f32'};controls.canopySize={value:1};controls.canopyRim={value:12};
+$('outlineMode').value='organic';const plain=organicMap();$('outlineMode').value='forest';
+const forest=organicMap();assert(count(forest)>count(plain),'crowns expand boundary');
+organicCache=null;assert.deepEqual(organicMap().mask.pixels,forest.mask.pixels,'forest shape is deterministic');
+assert.equal(organicAtlasMetadata().outline.forest.color,'#294f32');
+$('forestColor').value='#e5c637';const yellow=organicMap();assert.deepEqual(yellow.mask.pixels,forest.mask.pixels,'color preserves geometry');
+const pixels=yellow.terrain.calls[0][0].calls[0][0].pixels;assert(pixels.some((v,i)=>i%4===0&&v===229),'chosen color appears in canopy');
+$('canopyRim').value=0;const flat=organicMap().terrain.calls[0][0].calls[0][0].pixels;
+for(let i=0;i<flat.length;i+=4)if(flat[i+3])assert.deepEqual(Array.from(flat.slice(i,i+3)),[229,198,55],'zero rim is flat color');
+$('canopySize').value=2;assert.notDeepEqual(organicMap().mask.pixels,forest.mask.pixels,'crown size changes geometry');
+$('tileShape').value='hex';const hexForest=organicMap();for(let y=0;y<hexForest.mask.height;y++)for(let x=0;x<hexForest.mask.width;x++)if(hexForest.mask.pixels[(y*hexForest.mask.width+x)*4+3])assert(hexPosition(x+.5,y+.5),'crowns respect hex footprint');
+cells.fill(0);assert.equal(count(organicMap()),0,'empty forest stays empty');
+console.log('PASS: organic styles, atlas placement, forest crowns, colors, shading, determinism, empty maps, and hex footprint.');
 `,env);
